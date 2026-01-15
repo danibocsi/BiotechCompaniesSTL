@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>St. Louis Biotech Companies Directory</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display.swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+    
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        
+        /* Map Transitions */
+        #info-modal { transition: opacity 0.2s ease-in-out; }
+        .pin-marker { transition: transform 0.2s; }
+        
+        /* Custom Scrollbar for the modal list */
+        .custom-scroll::-webkit-scrollbar { width: 8px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* DataTables Styling */
+        .dataTables_wrapper .dataTables_length select,
+        .dataTables_wrapper .dataTables_filter input {
+            border: 1px solid #e2e8f0;
+            border-radius: 0.375rem;
+            padding: 0.25rem 0.5rem;
+            margin-left: 0.5rem;
+        }
+        table.dataTable thead th {
+            background-color: #f3f4f6;
+            color: #1f2937;
+            text-align: left;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        table.dataTable tbody tr:hover { background-color: #f8fafc; }
+        table.dataTable.no-footer { border-bottom: 1px solid #e5e7eb; }
+        
+        /* Table Cell Alignment */
+        table.dataTable tbody td {
+            vertical-align: top;
+        }
+
+        /* --- SELECT2 CUSTOM STYLING --- */
+        .select2-container .select2-selection--multiple {
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            min-height: 42px;
+            padding: 4px;
+        }
+        .select2-container--default .select2-selection--multiple .select2-selection__choice {
+            background-color: #eff6ff !important;
+            border: 1px solid #bfdbfe !important;
+            color: #1e40af !important;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            margin-top: 4px;
+            display: inline-flex !important;
+            align-items: center;
+            padding: 2px 0 !important;
+        }
+        .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+            color: #1e40af !important;
+            border-right: 1px solid #bfdbfe !important;
+            padding: 0 8px !important;
+            margin-right: 8px !important;
+            margin-left: 0 !important;
+            position: static !important;
+        }
+        .select2-container--default .select2-selection--multiple .select2-selection__choice__display {
+            padding-right: 8px !important;
+            padding-left: 0 !important;
+        }
+        .select2-container--default.select2-container--focus .select2-selection--multiple {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 1px #3b82f6;
+        }
+        .select2-dropdown {
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 flex flex-col min-h-screen">
+
+    <div class="bg-blue-900 text-white text-center py-2 text-sm font-semibold tracking-wide uppercase">
+        Donate to BioSTL
+    </div>
+
+    <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-28 flex items-center justify-between">
+            <div class="flex-shrink-0">
+                <img src="assets/images/biostl-logo.png" alt="BioSTL" class="h-16 w-auto object-contain">
+            </div>
+
+            <div class="flex-shrink-0">
+                <img src="assets/images/biostl-atlas.png" alt="Atlas" class="h-20 w-auto object-contain">
+            </div>
+
+            <div class="w-24 hidden md:block"></div> 
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+        <div class="text-center max-w-2xl mx-auto">
+            <h1 class="text-3xl font-bold text-gray-900">St. Louis Biotech Companies</h1>
+            <p class="mt-2 text-gray-500">Explore the ecosystem. Use filters to update both the list and the map.</p>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl shadow-lg border border-gray-100">
+            <div class="flex justify-between items-center mb-4 px-2">
+                <h2 class="text-xl font-bold text-gray-800">Ecosystem Map</h2>
+                <div class="text-xs flex gap-4">
+                    <div class="flex items-center gap-1"><span class="w-3 h-3 bg-red-600 rounded-full block"></span> Single Location</div>
+                    <div class="flex items-center gap-1"><span class="w-3 h-3 bg-blue-600 rounded-full block"></span> Multiple Companies</div>
+                </div>
+            </div>
+            
+            <div id="map-container" class="relative rounded-lg overflow-hidden bg-gray-200 w-full shadow-inner">
+                <img src="assets/images/MapSTL.png" alt="St. Louis Map" class="w-full h-auto block select-none">
+                </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
+            <h2 class="text-xl font-bold text-gray-800 mb-6">Company Directory</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Company Type</label>
+                    <select id="filter-type" class="w-full" multiple="multiple"></select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Industry Sector</label>
+                    <select id="filter-sector" class="w-full" multiple="multiple"></select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Location (County)</label>
+                    <select id="filter-county" class="w-full" multiple="multiple"></select>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table id="biotech-table" class="display w-full border-collapse text-sm" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>Company Name</th>
+                            <th>Industry Sector</th>
+                            <th>Description</th>
+                            <th>Location</th>
+                            <th>Links</th>
+                            <th>Type</th> 
+                            <th>County</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-gray-800 text-gray-400 py-6 text-center text-sm">
+        <p>&copy; 2024 BioSTL. All rights reserved.</p>
+    </footer>
+
+    <div id="info-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg relative flex flex-col max-h-[90vh]">
+            <div class="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-xl">
+                <h2 id="modal-main-title" class="text-lg font-bold text-gray-800">Company Details</h2>
+                <button id="close-modal" class="text-gray-400 hover:text-gray-800 bg-white border hover:bg-gray-100 rounded-full p-1 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div id="modal-body" class="p-6 overflow-y-auto custom-scroll space-y-6"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const mapBounds = {
+            lat_top: 38.79316213751325,
+            lat_bottom: 38.46501745572879,
+            lng_left: -90.85566931018927,
+            lng_right: -90.09070538829796
+        };
+        const CLUSTER_THRESHOLD = 3.5; 
+
+        function latLngToPercent(lat, lng) {
+            if (lat > mapBounds.lat_top || lat < mapBounds.lat_bottom || lng < mapBounds.lng_left || lng > mapBounds.lng_right) return null;
+            const percentY = (lat - mapBounds.lat_top) / (mapBounds.lat_bottom - mapBounds.lat_top);
+            const percentX = (lng - mapBounds.lng_left) / (mapBounds.lng_right - mapBounds.lng_left);
+            return { topPercent: percentY * 100, leftPercent: percentX * 100 };
+        }
+
+        // --- CLUSTERING LOGIC ---
+        function clusterLocations(companies) {
+            const clusters = [];
+            companies.forEach(company => {
+                if (!company.coords) return;
+                const existingCluster = clusters.find(c => {
+                    const latDiff = Math.abs(c.top - company.coords.topPercent);
+                    const lngDiff = Math.abs(c.left - company.coords.leftPercent);
+                    return latDiff < CLUSTER_THRESHOLD && lngDiff < CLUSTER_THRESHOLD;
+                });
+                if (existingCluster) {
+                    existingCluster.items.push(company);
+                } else {
+                    clusters.push({ top: company.coords.topPercent, left: company.coords.leftPercent, items: [company] });
+                }
+            });
+            return clusters;
+        }
+
+        // --- MODAL RENDERER ---
+        const modal = document.getElementById('info-modal');
+        const modalBody = document.getElementById('modal-body');
+        const modalTitle = document.getElementById('modal-main-title');
+
+        function generateCompanyCard(data) {
+            const industry = data["Industry Sector"] || "";
+            const type = data["Company Type"] || "";
+            const subtitle = industry && type ? `${industry} • ${type}` : (industry || type);
+            // Location is already handled as a single specific string for map pins now
+            const displayLocation = data["Location"] ? data["Location"].replace(/;/g, '<br>') : "N/A";
+
+            const webLink = data["Website"] ? `<a href="${data["Website"]}" target="_blank" class="inline-block text-center bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-blue-700 transition">Website</a>` : '';
+            const liLink = data["LinkedIn Profile"] ? `<a href="${data["LinkedIn Profile"]}" target="_blank" class="inline-block text-center bg-gray-700 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-gray-800 transition">LinkedIn</a>` : '';
+
+            return `
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors">
+                    <h3 class="text-xl font-bold text-gray-900">${data["Company Name"] || "Unknown Name"}</h3>
+                    <p class="text-xs text-blue-600 font-bold uppercase tracking-wider mb-2">${subtitle}</p>
+                    <p class="text-sm text-gray-600 mb-3 leading-relaxed">${data["Brief Description"] || "No description provided."}</p>
+                    <div class="text-xs text-gray-500 mb-3 grid grid-cols-2 gap-2">
+                        <div><span class="font-bold text-gray-700">Employees:</span> ${data["Employees"] || "N/A"}</div>
+                        <div><span class="font-bold text-gray-700">Location:</span><br>${displayLocation}</div>
+                    </div>
+                    <div class="flex gap-2">${webLink}${liLink}</div>
+                </div>
+            `;
+        }
+
+        function openModal(clusterItems) {
+            modalBody.innerHTML = ""; 
+            if (clusterItems.length === 1) {
+                modalTitle.innerText = "Company Details";
+                modalBody.innerHTML = generateCompanyCard(clusterItems[0]);
+            } else {
+                modalTitle.innerText = `${clusterItems.length} Companies at this Location`;
+                const listContainer = document.createElement('div');
+                listContainer.className = "space-y-4";
+                clusterItems.forEach(company => { listContainer.innerHTML += generateCompanyCard(company); });
+                modalBody.appendChild(listContainer);
+            }
+            modal.classList.remove('hidden');
+        }
+
+        document.getElementById('close-modal').addEventListener('click', () => modal.classList.add('hidden'));
+        modal.addEventListener('click', (e) => { if (e.target.id === 'info-modal') modal.classList.add('hidden'); });
+
+        // --- MAP DRAWING ---
+        function drawPins(clusters) {
+            const container = document.getElementById('map-container');
+            container.querySelectorAll('.pin-marker').forEach(el => el.remove());
+
+            clusters.forEach(cluster => {
+                const count = cluster.items.length;
+                const isCluster = count > 1;
+                const pin = document.createElement('div');
+                const bgClass = isCluster ? 'bg-blue-600 hover:bg-blue-700 z-20' : 'bg-red-600 hover:bg-red-700 z-10';
+                const sizeClass = isCluster ? 'w-8 h-8' : 'w-5 h-5';
+                const content = isCluster ? `<span class="text-white text-xs font-bold">${count}</span>` : `<div class="w-1.5 h-1.5 bg-white rounded-full"></div>`;
+
+                pin.className = `pin-marker absolute ${sizeClass} ${bgClass} rounded-full border-2 border-white shadow-md cursor-pointer hover:scale-110 flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2`;
+                pin.style.top = cluster.top + '%';
+                pin.style.left = cluster.left + '%';
+                pin.innerHTML = content;
+                pin.title = isCluster ? `Click to view ${count} companies` : cluster.items[0]["Company Name"];
+                pin.addEventListener('click', (e) => { e.stopPropagation(); openModal(cluster.items); });
+                container.appendChild(pin);
+            });
+        }
+
+        // --- TABLE & FILTER LOGIC ---
+        function initTable(tableData, mapData) {
+            // Initialize DataTable with unique companies
+            const table = $('#biotech-table').DataTable({
+                data: tableData,
+                columns: [
+                    { data: "Company Name", className: "font-semibold text-gray-900" },
+                    { data: "Industry Sector" },
+                    { data: "Brief Description", render: (data) => (data && data.length > 80) ? data.substr(0, 80) + '...' : data },
+                    { 
+                        data: "Location", 
+                        render: function(data) {
+                            // If multiple addresses separated by semicolon, put them on new lines
+                            if(!data) return "";
+                            return data.split(';').map(addr => `<div>• ${addr.trim()}</div>`).join('');
+                        }
+                    },
+                    { 
+                        data: null, orderable: false,
+                        render: (data, type, row) => {
+                           let html = '';
+                           if(row["Website"]) html += `<a href="${row["Website"]}" target="_blank" class="text-blue-600 hover:underline mr-2">Web</a>`;
+                           return html || '-';
+                        }
+                    },
+                    // Hidden Columns for Filtering
+                    { data: "Company Type", visible: false }, 
+                    { data: "Location (County)", visible: false, defaultContent: "" } 
+                ],
+                pageLength: 10,
+                responsive: true,
+                language: { search: "_INPUT_", searchPlaceholder: "Search text..." }
+            });
+
+            // --- MAP SYNC LOGIC ---
+            // Whenever the table is redrawn (due to filter), update the map.
+            // But we must grab the correct pins from 'mapData' based on the companies currently in the table.
+            table.on('draw', function () {
+                // 1. Get currently visible rows from table
+                const filteredData = table.rows({ search: 'applied' }).data().toArray();
+                
+                // 2. Extract Company Names (or unique IDs)
+                const visibleCompanyNames = new Set(filteredData.map(d => d["Company Name"]));
+                
+                // 3. Filter the Map Data to only include locations for these companies
+                const visibleMapData = mapData.filter(d => visibleCompanyNames.has(d["Company Name"]));
+                
+                // 4. Re-Cluster and Draw
+                const newClusters = clusterLocations(visibleMapData);
+                drawPins(newClusters);
+            });
+
+            // --- MULTI-SELECT FILTER HELPER ---
+            function setupMultiSelect(columnIndex, selector, placeholder) {
+                const column = table.column(columnIndex);
+                const selectElement = $(selector);
+
+                // Collect unique values, handling semicolon separated lists (e.g. County A; County B)
+                let uniqueItems = new Set();
+                column.data().each(function (d) {
+                    if(d) d.split(';').forEach(item => uniqueItems.add(item.trim()));
+                });
+
+                // Sort and Populate
+                Array.from(uniqueItems).sort().forEach(item => {
+                    selectElement.append(new Option(item, item));
+                });
+
+                // Initialize Select2
+                selectElement.select2({
+                    placeholder: placeholder,
+                    allowClear: true,
+                    width: '100%'
+                });
+
+                // Bind Change Event for OR filtering
+                selectElement.on('change', function () {
+                    const selectedData = $(this).val(); 
+                    if (selectedData && selectedData.length > 0) {
+                        const searchTerms = selectedData.map(d => $.fn.dataTable.util.escapeRegex(d));
+                        const regex = '^.*(' + searchTerms.join('|') + ').*$'; // Match if string contains any selected term
+                        column.search(regex, true, false).draw();
+                    } else {
+                        column.search('', true, false).draw();
+                    }
+                });
+            }
+
+            // Init Filters
+            setupMultiSelect(1, '#filter-sector', "Select Industry...");
+            setupMultiSelect(5, '#filter-type', "Select Type...");
+            setupMultiSelect(6, '#filter-county', "Select County...");
+        }
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', function() {
+            Papa.parse('DataCompany.csv', {
+                download: true, header: true, skipEmptyLines: true,
+                complete: function(results) {
+                    const rawData = results.data;
+                    
+                    // 1. Prepare Map Data (Exploded: 1 row per location)
+                    const mapData = [];
+                    rawData.forEach(company => {
+                        const latStr = company["Latitude"] || "";
+                        const lngStr = company["Longitude"] || "";
+                        
+                        // Parse Location String as well
+                        const locStr = company["Location"] || "";
+                        const addresses = locStr.split(';');
+
+                        // Treat Location specially for Map pins
+                        const lats = latStr.split(';');
+                        const lngs = lngStr.split(';');
+                        const count = Math.max(lats.length, 1);
+
+                        for(let i = 0; i < count; i++) {
+                            const thisLat = lats[i] ? parseFloat(lats[i].trim()) : NaN;
+                            const thisLng = lngs[i] ? parseFloat(lngs[i].trim()) : NaN;
+                            let coords = null;
+                            if (!isNaN(thisLat) && !isNaN(thisLng)) {
+                                coords = latLngToPercent(thisLat, thisLng);
+                            }
+                            
+                            // Create a specific copy of the company data for this pin
+                            // We OVERRIDE the 'Location' field with the specific address for this pin
+                            const specificAddress = addresses[i] ? addresses[i].trim() : (addresses[0] ? addresses[0].trim() : "");
+                            
+                            const pinData = {
+                                ...company, 
+                                "Location": specificAddress,
+                                coords
+                            };
+
+                            // Push a copy for the map system
+                            mapData.push(pinData);
+                        }
+                    });
+
+                    // 2. Prepare Table Data (Unique: 1 row per company)
+                    // We can just use rawData, but we let the Table Render handle the semicolon splitting visually.
+                    const tableData = rawData;
+
+                    // 3. Initial Draw
+                    const clusters = clusterLocations(mapData);
+                    drawPins(clusters);
+                    initTable(tableData, mapData);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
